@@ -2,6 +2,7 @@
 """test for place"""
 import unittest
 import os
+from os import getenv
 from models.place import Place
 from models.base_model import BaseModel
 import pep8
@@ -29,7 +30,7 @@ class TestPlace(unittest.TestCase):
     @classmethod
     def teardown(cls):
         """at the end of the test this will tear it down"""
-        cls.place
+        del cls.place
 
     def tearDown(self):
         """teardown"""
@@ -83,8 +84,8 @@ class TestPlace(unittest.TestCase):
         self.assertEqual(type(self.place.longitude), float)
         self.assertEqual(type(self.place.amenity_ids), list)
 
-    @unittest.skipIf(os.environ['HBNB_TYPE_STORAGE'] == 'db',
-                     'Invalid storage mode')
+    @unittest.skipIf(getenv("HBNB_TYPE_STORAGE") == "db",
+                     "can't run if storage is db")
     def test_save_Place(self):
         """test if the save works"""
         self.place.save()

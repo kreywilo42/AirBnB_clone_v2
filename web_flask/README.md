@@ -17,4 +17,4 @@ All the files in the [templates](./templates) directory are HTML templates for t
 
 ## Author (solo project)
 
-Laura Roudge
+Stanley Mayore

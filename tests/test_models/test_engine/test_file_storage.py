@@ -52,6 +52,13 @@ class TestFileStorage(unittest.TestCase):
         self.assertEqual(type(obj), dict)
         self.assertIs(obj, storage._FileStorage__objects)
 
+    def test_all_v2(self):
+        """Tests the new all() method in the v2"""
+        storage = FileStorage()
+        users = storage.all(User)
+        self.assertIsNotNone(users)
+        self.assertEqual(type(users), dict)
+
     def test_new(self):
         """test when new is created"""
         storage = FileStorage()
@@ -64,9 +71,7 @@ class TestFileStorage(unittest.TestCase):
         self.assertIsNotNone(obj[key])
 
     def test_reload_filestorage(self):
-        """
-        tests reload
-        """
+        """Tests reload"""
         self.storage.save()
         Root = os.path.dirname(os.path.abspath("console.py"))
         path = os.path.join(Root, "file.json")
@@ -90,6 +95,20 @@ class TestFileStorage(unittest.TestCase):
             for line in r:
                 self.assertEqual(line, "{}")
         self.assertIs(self.storage.reload(), None)
+
+    def test_delete(self):
+        """Tests the delete v2 method"""
+        storage = FileStorage()
+        new_state = State()
+        new_state.name = "California"
+        storage.new(new_state)
+        storage.save()
+        states = storage.all(State)
+        self.assertIsNotNone(states)
+        self.assertEqual(type(states), dict)
+        storage.delete(new_state)
+        states = storage.all(State)
+        self.assertEqual(states, {})
 
 
 if __name__ == "__main__":

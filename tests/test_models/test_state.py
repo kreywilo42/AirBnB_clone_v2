@@ -2,6 +2,7 @@
 """test for state"""
 import unittest
 import os
+from os import getenv
 from models.state import State
 from models.base_model import BaseModel
 import pep8
@@ -53,8 +54,8 @@ class TestState(unittest.TestCase):
         """test attribute type for State"""
         self.assertEqual(type(self.state.name), str)
 
-    @unittest.skipIf(os.environ['HBNB_TYPE_STORAGE'] == 'db',
-                     'Invalid storage mode')
+    @unittest.skipIf(getenv("HBNB_TYPE_STORAGE") == "db",
+                     "can't run if storage is db")
     def test_save_State(self):
         """test if the save works"""
         self.state.save()

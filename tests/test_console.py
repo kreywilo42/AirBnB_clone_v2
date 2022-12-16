@@ -5,6 +5,7 @@ from unittest.mock import patch
 from io import StringIO
 import pep8
 import os
+from os import getenv
 import json
 import console
 import tests
@@ -27,17 +28,17 @@ class TestConsole(unittest.TestCase):
         """setup for the test"""
         cls.consol = HBNBCommand()
 
-    @classmethod
-    def teardown(cls):
-        """at the end of the test this will tear it down"""
-        del cls.consol
-
-    def tearDown(self):
-        """Remove temporary file (file.json) created as a result"""
-        try:
+    def setUp(self):
+        """Sets up test cases."""
+        if os.path.isfile("file.json"):
             os.remove("file.json")
-        except Exception:
-            pass
+        self.resetStorage()
+
+    def resetStorage(self):
+        """Resets FileStorage data."""
+        FileStorage._FileStorage__objects = {}
+        if os.path.isfile(FileStorage._FileStorage__file_path):
+            os.remove(FileStorage._FileStorage__file_path)
 
     def test_pep8_console(self):
         """Pep8 console.py"""
@@ -72,9 +73,73 @@ class TestConsole(unittest.TestCase):
             self.consol.onecmd("quit")
             self.assertEqual('', f.getvalue())
 
+    @unittest.skipIf(getenv("HBNB_TYPE_STORAGE") == "db",
+                     "can't run if storage is db")
     def test_create(self):
         """Test create command inpout"""
-        pass
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create")
+            self.assertEqual(
+                "** class name missing **\n", f.getvalue())
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create asdfsfsd")
+            self.assertEqual(
+                "** class doesn't exist **\n", f.getvalue())
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create User")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all User")
+            self.assertEqual(
+                "[[User]", f.getvalue()[:7])
+
+    @unittest.skipIf(getenv("HBNB_TYPE_STORAGE") == "db",
+                     "can't run if storage is db")
+    def test_create_v2(self):
+        """Test create command with parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create State name="California"')
+            id = f.getvalue()[:-1]
+            self.assertEqual(len(id), 36)
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("show State {}".format(id))
+            self.assertTrue("'name': 'California'" in f.getvalue())
+            self.assertEqual(
+                "[State]", f.getvalue()[:7])
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol\
+                       .onecmd('create City name="San_Francisco state_id="{}"'
+                               .format(id))
+            id = f.getvalue()[:-1]
+            self.assertEqual(len(id), 36)
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create Place latitude=7.89')
+            id = f.getvalue()[:-1]
+            self.assertEqual(len(id), 36)
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("show Place {}".format(id))
+            self.assertTrue("'latitude': 7.89" in f.getvalue())
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create Place max_guest=5')
+            id = f.getvalue()[:-1]
+            self.assertEqual(len(id), 36)
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("show Place {}".format(id))
+            self.assertTrue("'max_guest': 5" in f.getvalue())
+
+    def test_create_v2_params(self):
+        """Test create command with several parameters"""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create User email="ilovetim@google.com"\
+                               password="timisboss"\
+                               first_name="Farrukh" last_name')
+            id = f.getvalue()[:-1]
+            self.assertEqual(len(id), 36)
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("show User {}".format(id))
+            print(f.getvalue())
+            self.assertTrue("'email': 'ilovetim@google.com'" in f.getvalue())
+            self.assertTrue("'password': 'timisboss'" in f.getvalue())
+            self.assertTrue("'first_name': 'Farrukh'" in f.getvalue())
 
     def test_show(self):
         """Test show command inpout"""
@@ -123,6 +188,8 @@ class TestConsole(unittest.TestCase):
             self.consol.onecmd("all State")
             self.assertEqual("[]\n", f.getvalue())
 
+    @unittest.skipIf(getenv("HBNB_TYPE_STORAGE") == "db",
+                     "can't run if storage is db")
     def test_update(self):
         """Test update command inpout"""
         with patch('sys.stdout', new=StringIO()) as f:
@@ -142,15 +209,14 @@ class TestConsole(unittest.TestCase):
             self.assertEqual(
                 "** no instance found **\n", f.getvalue())
         with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all User")
-            obj = f.getvalue()
-        my_id = obj[obj.find('(')+1:obj.find(')')]
+            self.consol.onecmd("create User")
+            id = f.getvalue()[:-1]
         with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("update User " + my_id)
+            self.consol.onecmd("update User " + id)
             self.assertEqual(
                 "** attribute name missing **\n", f.getvalue())
         with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("update User " + my_id + " Name")
+            self.consol.onecmd("update User " + id + " Name")
             self.assertEqual(
                 "** value missing **\n", f.getvalue())
 
@@ -185,7 +251,7 @@ class TestConsole(unittest.TestCase):
             self.assertEqual(
                 "** no instance found **\n", f.getvalue())
 
-    def test_destroy(self):
+    def test_z_destroy(self):
         """Test alternate destroy command inpout"""
         with patch('sys.stdout', new=StringIO()) as f:
             self.consol.onecmd("Galaxy.destroy()")
@@ -196,8 +262,10 @@ class TestConsole(unittest.TestCase):
             self.assertEqual(
                 "** no instance found **\n", f.getvalue())
 
-    def test_update(self):
-        """Test alternate destroy command inpout"""
+    @unittest.skipIf(getenv("HBNB_TYPE_STORAGE") == "db",
+                     "can't run if storage is db")
+    def test_update_error(self):
+        """Test alternate update command inpout"""
         with patch('sys.stdout', new=StringIO()) as f:
             self.consol.onecmd("sldkfjsl.update()")
             self.assertEqual(
@@ -207,17 +275,16 @@ class TestConsole(unittest.TestCase):
             self.assertEqual(
                 "** no instance found **\n", f.getvalue())
         with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all User")
-            obj = f.getvalue()
-        my_id = obj[obj.find('(')+1:obj.find(')')]
+            self.consol.onecmd("create User")
+            id = f.getvalue()[:-1]
         with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("User.update(" + my_id + ")")
-            # self.assertEqual(
-            #    "** attribute name missing **\n", f.getvalue())
+            self.consol.onecmd("User.update(" + id + ")")
+            self.assertEqual(
+                "** attribute name missing **\n", f.getvalue())
         with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("User.update(" + my_id + ", name)")
-            # self.assertEqual(
-            #    "** value missing **\n", f.getvalue())
+            self.consol.onecmd("User.update(" + id + ", name)")
+            self.assertEqual(
+                "** value missing **\n", f.getvalue())
 
 if __name__ == "__main__":
     unittest.main()
