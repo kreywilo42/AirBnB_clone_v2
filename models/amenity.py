@@ -1,19 +1,18 @@
 #!/usr/bin/python3
-"""This is the amenity class"""
-from os import getenv
+""" State Module for HBNB project """
+import os
 from models.base_model import BaseModel, Base
-from sqlalchemy.orm import relationship
 from sqlalchemy import Column, String
+from sqlalchemy.orm import relationship
+from models.place import Place, place_amenity
 
 
 class Amenity(BaseModel, Base):
-    """This is the class for Amenity
-    Attributes:
-        name: input name
-    """
+    """ Amenities different places have """
     __tablename__ = 'amenities'
-    name = Column(String(128), nullable=False)
-    if getenv("HBNB_TYPE_STORAGE") == "db":
-        place_amenities = relationship('Place',
-                                       secondary='place_amenity',
-                                       back_populates='amenities')
+    if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+        name = Column(String(1024), nullable=False)
+        place_amenities = relationship(
+            "Place", secondary=place_amenity, viewonly=False)
+    else:
+        name = ""

@@ -1,78 +1,89 @@
 #!/usr/bin/python3
-"""This is the place class"""
-from sqlalchemy import String, DateTime
-from sqlalchemy import Column, ForeignKey, Integer
-from sqlalchemy import Float, Table
-from sqlalchemy.orm import relationship
-import models
+""" Place Module for HBNB project """
+import os
 from models.base_model import BaseModel, Base
+from sqlalchemy import Table, Column, Integer, Float, String, ForeignKey
 from models.city import City
-from models.amenity import Amenity
-from models.review import Review
-from os import getenv
+from models.user import User
+from sqlalchemy.orm import relationship
 
-
-if getenv("HBNB_TYPE_STORAGE") == "db":
-    place_amenity = Table('place_amenity', Base.metadata,
-                          Column('place_id',
-                                 String(60),
-                                 ForeignKey('places.id'),
-                                 primary_key=True, nullable=False),
-                          Column('amenity_id',
-                                 String(60),
-                                 ForeignKey('amenities.id'),
-                                 primary_key=True, nullable=False))
+place_amenity = Table('place_amenity', Base.metadata,
+                      Column('place_id', String(60), ForeignKey(
+                          'places.id'), primary_key=True, nullable=False),
+                      Column('amenity_id', String(60), ForeignKey(
+                          'amenities.id'), primary_key=True,
+                          nullable=False)
+                      )
 
 
 class Place(BaseModel, Base):
-    """This is the class for Place
-    Attributes:
-        city_id: city id
-        user_id: user id
-        name: name input
-        description: string of description
-        number_rooms: number of room in int
-        number_bathrooms: number of bathrooms in int
-        max_guest: maximum guest in int
-        price_by_night:: pice for a staying in int
-        latitude: latitude in flaot
-        longitude: longitude in float
-        amenity_ids: list of Amenity ids
-    """
+    """ A place to stay """
     __tablename__ = 'places'
-    city_id = Column(String(60), ForeignKey('cities.id'), nullable=False)
-    user_id = Column(String(60), ForeignKey('users.id'), nullable=False)
-    name = Column(String(128), nullable=False)
-    description = Column(String(1024), nullable=True)
-    number_rooms = Column(Integer, default=0, nullable=False)
-    number_bathrooms = Column(Integer, default=0, nullable=False)
-    max_guest = Column(Integer, default=0, nullable=False)
-    price_by_night = Column(Integer, default=0, nullable=False)
-    latitude = Column(Float, nullable=True)
-    longitude = Column(Float, nullable=True)
-    amenity_ids = []
-
-    if getenv("HBNB_TYPE_STORAGE") == "db":
-        reviews = relationship('Review', backref='place',
-                               cascade='all, delete-orphan')
-        amenities = relationship('Amenity',
-                                 secondary='place_amenity',
-                                 backref='places', viewonly=False)
+    if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+        city_id = Column(String(60), ForeignKey('cities.id'), nullable=False)
+        user_id = Column(String(60), ForeignKey('users.id'), nullable=False)
+        name = Column(String(128), nullable=False)
+        description = Column(String(1024), nullable=True)
+        number_rooms = Column(Integer, nullable=False, default=0)
+        number_bathrooms = Column(Integer, nullable=False, default=0)
+        max_guest = Column(Integer, nullable=False, default=0)
+        price_by_night = Column(Integer, nullable=False, default=0)
+        latitude = Column(Float, nullable=True)
+        longitude = Column(Float, nullable=True)
+        amenity_ids = []
+        amenities = relationship(
+            "Amenity", secondary=place_amenity,
+            back_populates='place_amenities', viewonly=False)
+        reviews = relationship(
+            "Review", cascade="all, delete, delete-orphan", backref="places")
     else:
+        city_id = ""
+        user_id = ""
+        name = ""
+        description = ""
+        number_rooms = 0
+        number_bathrooms = 0
+        max_guest = 0
+        price_by_night = 0
+        latitude = 0.0
+        longitude = 0.0
+        amenity_ids = []
+
+    def __init__(self, *args, **kwargs):
+        """Instatntiates a new model"""
+        from models.review import Review
+        from models.amenity import Amenity
+        super().__init__(*args, **kwargs)
+
+    if os.getenv('HBNB_TYPE_STORAGE') != 'db':
         @property
         def reviews(self):
-            """Getter attribute in case of file storage"""
-            return [review for review in models.storage.all(Review)
-                    if review.place_id == self.id]
+            """Get reviews from FileStorage"""
+            from models.review import Review
+            from models import storage
+            review_dict = storage.all(Review)
+            review_list = []
+            for review in review_dict.values():
+                if review.place_id == self.id:
+                    review_list.append(review)
+            return review_list
 
         @property
         def amenities(self):
-            """Getter attribute in case of file storage"""
-            return [amenity for amenity in models.storage.all(Amenity)
-                    if amenity.id in self.amenity_ids]
+            """Get amenities from FileStorage"""
+            from models.amenity import Amenity
+            from models import storage
+            amenity_dict = storage.all(Amenity)
+            amenity_list = []
+            for amenity in amenity_dict.values():
+                if amenity.id in self.amenity_ids:
+                    amenity_list.append(amenity)
+            return amenity_list
 
         @amenities.setter
         def amenities(self, obj):
-            """Setter method for amenities"""
-            if (type(obj) == Amenity):
-                self.amenity_ids.append(obj.id)
+            """Set amenities to class attrib"""
+            from models.amenity import Amenity
+            if isinstance(obj, Amenity):
+                if obj.id not in self.amenity_ids:
+                    self.amenity_ids.append(obj.id)
