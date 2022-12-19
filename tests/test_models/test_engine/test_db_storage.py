@@ -7,12 +7,10 @@ from models import storage
 from datetime import datetime
 import os
 
-
 @unittest.skipIf(os.getenv('HBNB_TYPE_STORAGE') != 'db',
                  'db_storage test not supported')
 class TestDBStorage(unittest.TestCase):
     '''testing dbstorage engine'''
-
     def test_new_and_save(self):
         '''testing  the new and save methods'''
         db = MySQLdb.connect(user=os.getenv('HBNB_MYSQL_USER'),
@@ -117,20 +115,19 @@ class TestDBStorage(unittest.TestCase):
             'INSERT INTO users(id, created_at, updated_at, email, password' +
             ', first_name, last_name) VALUES(%s, %s, %s, %s, %s, %s, %s);',
             [
-                '4447-r4n4-6u11s',
+                '4447-by-me',
                 str(datetime.now()),
                 str(datetime.now()),
-                'lewl@yahoo.com',
+                'ben_pike@yahoo.com',
                 'pass',
-                'Fwyd',
-                'Be',
+                'Benjamin',
+                'Pike',
             ]
         )
-        self.assertNotIn('User.4447-r4n4-6u11s', storage.all())
+        self.assertNotIn('User.4447-by-me', storage.all())
         dbc.commit()
-
         storage.reload()
-        self.assertIn('User.4447-r4n4-6u11s', storage.all())
+        self.assertIn('User.4447-by-me', storage.all())
         cursor.close()
         dbc.close()
 

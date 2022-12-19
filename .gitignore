@@ -1,1 +1,4 @@
-env_config.sh
+*.pyc
+test_params_create
+*.json
+main*.py
